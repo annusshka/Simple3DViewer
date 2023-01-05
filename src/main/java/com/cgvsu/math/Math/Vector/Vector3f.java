@@ -7,16 +7,12 @@ package com.cgvsu.math.Math.Vector;
 public class Vector3f extends Vector {
 
     private static final int size = 3;
-    public float x, y, z;
 
     private float[] vector = new float[size];
 
     public Vector3f(float[] vector) {
         super(vector, size);
         this.vector = vector;
-        this.x = vector[0];
-        this.y = vector[1];
-        this.z = vector[2];
     }
 
     public Vector3f() {

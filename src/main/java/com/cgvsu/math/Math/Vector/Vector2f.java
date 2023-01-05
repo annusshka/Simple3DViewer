@@ -10,13 +10,9 @@ public class Vector2f extends Vector {
 
     private float[] vector = new float[size];
 
-    public float x, y;
-
     public Vector2f(float[] vector) {
         super(vector, size);
         this.vector = vector;
-        this.x = vector[0];
-        this.y = vector[1];
     }
 
     public Vector2f() {
