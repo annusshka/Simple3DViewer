@@ -17,7 +17,7 @@ public class Simple3DViewer extends Application {
         Scene scene = new Scene(viewport);
 
         GuiController controller = fxmlLoader.getController();
-        scene.setOnKeyPressed(controller::shoot);
+        scene.setOnKeyPressed(controller::handleKeyEvent);
         scene.setOnKeyReleased(controller::handleKeyReleased);
 
         stage.setMinWidth(1600);

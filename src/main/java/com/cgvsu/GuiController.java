@@ -3,12 +3,10 @@ package com.cgvsu;
 import com.cgvsu.math.Math.Vector.Vector3f;
 import com.cgvsu.model.TransformedModel;
 import com.cgvsu.render_engine.RenderEngine;
-import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.animation.Animation;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
-import javafx.event.ActionEvent;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
@@ -18,7 +16,6 @@ import javafx.stage.Stage;
 import javafx.stage.FileChooser;
 import javafx.util.Duration;
 
-import java.awt.event.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.io.IOException;
@@ -31,11 +28,11 @@ import com.cgvsu.render_engine.Camera;
 
 public class GuiController {
 
-    final private float TRANSLATION = 0.5F;
+    final private float TRANSLATION = 1F;
 
-    final private float SCALE = 0.125F;
+    final private float SCALE = 0.05F;
 
-    final private float ROTATE_PARAM = 0.5F;
+    final private float ROTATE_PARAM = 1F;
 
     static final float EPS = 1e-6f;
 
@@ -45,7 +42,7 @@ public class GuiController {
     @FXML
     private Canvas canvas;
 
-    private Model mesh = null;
+    private TransformedModel transformedModel = null;
 
     private ArrayList<KeyCode> keyCodes = null;
 
@@ -53,8 +50,6 @@ public class GuiController {
             new Vector3f(new float[]{0, 00, 100}),
             new Vector3f(new float[]{0, 0, 0}),
             1.0F, 1, 0.01F, 100);
-
-    private TransformedModel transformedModel = new TransformedModel(mesh);
 
     private Timeline timeline;
 
@@ -65,88 +60,76 @@ public class GuiController {
 
         timeline = new Timeline();
         timeline.setCycleCount(Animation.INDEFINITE);
-        keyCodes = new ArrayList<KeyCode>();
 
-        KeyFrame frame = new KeyFrame(Duration.millis(15), event -> {
+        KeyFrame frame = new KeyFrame(Duration.millis(30), event -> {
             double width = canvas.getWidth();
             double height = canvas.getHeight();
 
             canvas.getGraphicsContext2D().clearRect(0, 0, width, height);
             camera.setAspectRatio((float) (width / height));
 
-            if (mesh != null) {
+            if (transformedModel != null) {
                 canvas.setOnScroll(this::handleMouseWheelMoved);
                 canvas.setOnMousePressed(this::handleMousePressed);
-                RenderEngine.render(canvas.getGraphicsContext2D(), camera, transformedModel, mesh,
+                RenderEngine.render(canvas.getGraphicsContext2D(), camera, transformedModel,
                         (int) width, (int) height);
             }
         });
-
-
         timeline.getKeyFrames().add(frame);
         timeline.play();
     }
 
-    public void shoot(KeyEvent e) {
-        KeyCode key = e.getCode();
-        if (!keyCodes.contains(key)) {
-            keyCodes.add(key);
-        }
-        handleKeys();
-    }
+    @FXML
+    private void onOpenModelMenuItemClick() {
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Model (*.obj)", "*.obj"));
+        fileChooser.setTitle("Load Model");
 
-    private void handleKeyPressed(KeyEvent e, int sign) {
-        if (e == null) {
-            camera.movePosition(new Vector3f(new float[]{0, 0, sign * TRANSLATION}));
-        } else if (e.getCode() == KeyCode.D) {
-            camera.movePosition(new Vector3f(new float[]{0, sign * TRANSLATION, 0}));
-        } else if (e.getCode() == KeyCode.W) {
-            camera.movePosition(new Vector3f(new float[]{sign * TRANSLATION, 0, 0}));
+        File file = fileChooser.showOpenDialog((Stage) canvas.getScene().getWindow());
+        if (file == null) {
+            return;
         }
-    }
 
-    private boolean handleMouseWheel(ScrollEvent event) {
-        return event.getDeltaY() < 0;
+        Path fileName = Path.of(file.getAbsolutePath());
+
+        try {
+            String fileContent = Files.readString(fileName);
+            Model mesh = ObjReader.read(fileContent);
+            transformedModel = new TransformedModel(mesh);
+            transformedModel.setTransformedModel();
+            keyCodes = new ArrayList<KeyCode>();
+            // todo: обработка ошибок
+        } catch (IOException exception) {
+
+        }
     }
 
     private void handleMouseWheelMoved(ScrollEvent event) {
-        double notches = event.getDeltaY();
-        float x = camera.getPosition().get(0);
-        float y = camera.getPosition().get(1);
-        float z = camera.getPosition().get(2);
-        float signX = 1;
-        float signY = 1;
-        float signZ = 1;
-        if (x < 0) {
-            signX = -1;
-            x = Math.abs(x);
-        }
-        if (y < 0) {
-            signY = -1;
-            y = Math.abs(y);
-        }
-        if (z < 0) {
-            signZ = -1;
-            z = Math.abs(z);
-        }
-        if (notches < 0) {
-            if (x - y >= EPS && x - z >= EPS) {
+        final double notches = event.getDeltaY();
+        final float x = camera.getPosition().get(0);
+        final float y = camera.getPosition().get(1);
+        final float z = camera.getPosition().get(2);
+        final float signX = x < 0 ? 1 : -1;
+        final float signY = y < 0 ? 1 : -1;
+        final float signZ = z < 0 ? 1 : -1;
+        final float max = Math.max(Math.max(Math.abs(x), Math.abs(y)), Math.abs(z));
+
+        if (notches > 0) {
+            if (max - x < EPS) {
                 camera.movePosition(new Vector3f(new float[]{signX * TRANSLATION, 0, 0}));
-            } else if (y - x >= EPS && y - z >= EPS) {
+            } else if (max - y < EPS) {
                 camera.movePosition(new Vector3f(new float[]{0, signY * TRANSLATION, 0}));
             } else {
                 camera.movePosition(new Vector3f(new float[]{0, 0, signZ * TRANSLATION}));
             }
-            //handleCameraBackward();
         } else {
-            if (x - y >= EPS && x - z >= EPS) {
+            if (max - x < EPS) {
                 camera.movePosition(new Vector3f(new float[]{-signX * TRANSLATION, 0, 0}));
-            } else if (y - x >= EPS && y - z >= EPS) {
+            } else if (max - y < EPS) {
                 camera.movePosition(new Vector3f(new float[]{0, -signY * TRANSLATION, 0}));
             } else {
                 camera.movePosition(new Vector3f(new float[]{0, 0, -signZ * TRANSLATION}));
             }
-            //handleCameraForward();
         }
     }
 
@@ -166,7 +149,7 @@ public class GuiController {
             if (dxy >= EPS && (camera.getPosition().get(0) <= EPS && dx < 0 ||
                     camera.getPosition().get(0) > EPS && dx > 0)) {
                 dz *= -1;
-            } else if (dxy < EPS) { //если больше перемещаем по y, то по z е перемещаем
+            } else if (dxy < EPS) { //если больше перемещаем по y, то по z не перемещаем
                 dz = 0;
             }
             if (camera.getPosition().get(2) <= EPS) {
@@ -179,45 +162,30 @@ public class GuiController {
         });
     }
 
-    /*
-    private void handleMousePressed1(javafx.scene.input.MouseEvent event) {
-        var ref = new Object() {
-            float prevX = (float) event.getX();
-            float prevY = (float) event.getY();
-        };
-        canvas.setOnMouseDragged(mouseEvent -> {
-            final float actualX = (float) mouseEvent.getX();
-            final float actualY = (float) mouseEvent.getY();
-            float dx = 0;
-            float dy = 0;
-            float dz = 0;
-
-            if (keyCodes.contains(KeyCode.X)) {
-                dx = ref.prevX - actualX;
-                if (camera.getPosition().get(2) <= EPS) {
-                    dx *= -1;
-                }
-            } else if (keyCodes.contains(KeyCode.Y)) {
-                dy = actualY - ref.prevY;
-            } else if (keyCodes.contains(KeyCode.Z)) {
-                dz = (float) Math.sqrt(Math.pow(dx, 2) + Math.pow(dy, 2));
-            }
-            float dxy = Math.abs(dx) - Math.abs(dy);
-
-            if (dxy >= EPS && (camera.getPosition().get(0) <= EPS && dx < 0 ||
-                    camera.getPosition().get(0) > EPS && dx > 0)) {
-                dz *= -1;
-            } else if (dxy < EPS) { //если больше перемещаем по y, то по z е перемещаем
-                dz = 0;
-            }
-
-            ref.prevX = actualX;
-            ref.prevY = actualY;
-            camera.moveTarget(new Vector3f(new float[]{dx * 0.01f, dy * 0.01f, dz * 0.01f}));
-        });
+    public void handleKeyEvent(KeyEvent e) {
+        KeyCode key = e.getCode();
+        if (!keyCodes.contains(key)) {
+            keyCodes.add(key);
+        }
+        handleKeys();
     }
 
-     */
+    private void handleKeys() {
+        if (keyCodes.contains(KeyCode.G)) {
+            handleTranslate();
+        } else if (keyCodes.contains(KeyCode.E)) {
+            canvas.setOnScroll(this::handleMouseWheelMoved);
+            handleScale();
+        } else if (keyCodes.contains(KeyCode.R)) {
+            handleRotate();
+        } else {
+            handleCameraMove();
+        }
+    }
+
+    public void handleKeyReleased(KeyEvent event) {
+        keyCodes.remove(event.getCode());
+    }
 
     private void handleTranslate() {
         if (keyCodes.contains(KeyCode.D)) {
@@ -239,148 +207,150 @@ public class GuiController {
 
     private void handleScale() {
         if (keyCodes.contains(KeyCode.D)) {
-            scaleObjectByX();
+            scaleByX();
         } else if (keyCodes.contains(KeyCode.A)) {
-            scaleObjectByX1();
+            reduceScaleByX();
         }
         if (keyCodes.contains(KeyCode.W)) {
-            scaleObjectByY();
+            scaleByY();
         } else if (keyCodes.contains(KeyCode.S)) {
-            scaleObjectByY1();
+            reduceScaleByY();
         }
         if (keyCodes.contains(KeyCode.UP)) {
-            scaleObjectByZ();
+            scaleByZ();
         } else if (keyCodes.contains(KeyCode.DOWN)) {
-            scaleObjectByZ1();
+            reduceScaleByZ();
         }
     }
 
     private void handleRotate() {
-        if (keyCodes.contains(KeyCode.D) && keyCodes.contains(KeyCode.S)) {
-            rotateAroundZ();
-        } else if (keyCodes.contains(KeyCode.D)) {
+        if (keyCodes.contains(KeyCode.W)) {
+            rotateAroundX();
+        }
+        if (keyCodes.contains(KeyCode.D)) {
             rotateAroundY();
-        } else if (keyCodes.contains(KeyCode.S)) {
+        }
+        if (keyCodes.contains(KeyCode.DOWN)) {
+            rotateAroundZ();
+        }
+        if (keyCodes.contains(KeyCode.S)) {
             rotateAroundX1();
         }
-        if (keyCodes.contains(KeyCode.W) && (keyCodes.contains(KeyCode.A))) {
-            rotateAroundZ1();
-        } else if (keyCodes.contains(KeyCode.W)) {
-            rotateAroundX();
-        } else if (keyCodes.contains(KeyCode.A)) {
+        if (keyCodes.contains(KeyCode.A)) {
             rotateAroundY1();
         }
-    }
-
-    private void handleKeys() {
-        if (keyCodes.contains(KeyCode.G)) {
-            handleTranslate();
-        } else if (keyCodes.contains(KeyCode.E)) {
-            canvas.setOnScroll(this::handleMouseWheelMoved);
-            handleScale();
-        } else if (keyCodes.contains(KeyCode.R)) {
-            handleRotate();
+        if (keyCodes.contains(KeyCode.UP)) {
+            rotateAroundZ1();
         }
     }
 
-    public void handleKeyReleased(KeyEvent event) {
-        keyCodes.remove(event.getCode());
-    }
-
-    @FXML
-    private void onOpenModelMenuItemClick() {
-        FileChooser fileChooser = new FileChooser();
-        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Model (*.obj)", "*.obj"));
-        fileChooser.setTitle("Load Model");
-
-        File file = fileChooser.showOpenDialog((Stage) canvas.getScene().getWindow());
-        if (file == null) {
-            return;
+    private void handleCameraMove() {
+        if (keyCodes.contains(KeyCode.W)) {
+            handleCameraUp();
+        } else if (keyCodes.contains(KeyCode.S)) {
+            handleCameraDown();
         }
-
-        Path fileName = Path.of(file.getAbsolutePath());
-
-        try {
-            String fileContent = Files.readString(fileName);
-            mesh = ObjReader.read(fileContent);
-            // todo: обработка ошибок
-        } catch (IOException exception) {
-
+        if (keyCodes.contains(KeyCode.D)) {
+            handleCameraRight();
+        } else if (keyCodes.contains(KeyCode.A)) {
+            handleCameraLeft();
+        }
+        if (keyCodes.contains(KeyCode.UP)) {
+            handleCameraForward();
+        } else if (keyCodes.contains(KeyCode.DOWN)) {
+            handleCameraBackward();
         }
     }
 
     // 9 параметров
     @FXML
     public void handleCameraForward() {
-        if (keyCodes.contains(KeyCode.UP)) {
-            camera.movePosition(new Vector3f(new float[]{0, 0, -TRANSLATION}));
-        }
+        camera.movePosition(new Vector3f(new float[]{0, 0, -TRANSLATION}));
     }
 
     @FXML
     public void handleCameraBackward() {
-        //<MenuItem mnemonicParsing="false" onAction="#handleCameraBackward" text="Backward" accelerator="DOWN"/>
-        if (keyCodes.contains(KeyCode.DOWN)) {
-            camera.movePosition(new Vector3f(new float[]{0, 0, TRANSLATION}));
-        }
+        camera.movePosition(new Vector3f(new float[]{0, 0, TRANSLATION}));
     }
 
     @FXML
     public void handleCameraLeft() {
-        if (keyCodes.contains(KeyCode.A)) {
-            camera.movePosition(new Vector3f(new float[]{TRANSLATION, 0, 0}));
-        }
+        camera.movePosition(new Vector3f(new float[]{TRANSLATION, 0, 0}));
     }
 
     @FXML
     public void handleCameraRight() {
-        if (keyCodes.contains(KeyCode.D)) {
-            camera.movePosition(new Vector3f(new float[]{-TRANSLATION, 0, 0}));
-        }
+        camera.movePosition(new Vector3f(new float[]{-TRANSLATION, 0, 0}));
     }
 
     @FXML
     public void handleCameraUp() {
-        if (keyCodes.contains(KeyCode.W)) {
-            camera.movePosition(new Vector3f(new float[]{0, TRANSLATION, 0}));
-        }
+        camera.movePosition(new Vector3f(new float[]{0, TRANSLATION, 0}));
     }
 
     @FXML
     public void handleCameraDown() {
-        if (keyCodes.contains(KeyCode.S)) {
-            camera.movePosition(new Vector3f(new float[]{0, -TRANSLATION, 0}));
+        camera.movePosition(new Vector3f(new float[]{0, -TRANSLATION, 0}));
+    }
+
+    @FXML
+    public void scaleByX() {
+        float scaleParam = transformedModel.getScaleParams().get(0);
+        if (scaleParam - 1 <= EPS) {
+            transformedModel.setScaleXParams(scaleParam * SCALE);
+        } else {
+            transformedModel.setScaleXParams(SCALE);
         }
     }
 
     @FXML
-    public void scaleObjectByX() {
-        transformedModel.scaleXParams(SCALE);
+    public void reduceScaleByX() {
+        float scaleParam = transformedModel.getScaleParams().get(0);
+        if (scaleParam - 1 <= EPS) {
+            transformedModel.setScaleXParams(-scaleParam * SCALE);
+        } else {
+            transformedModel.setScaleXParams(-SCALE);
+        }
     }
 
     @FXML
-    public void scaleObjectByX1() {
-        transformedModel.scaleXParams(-SCALE);
+    public void scaleByY() {
+        float scaleParam = transformedModel.getScaleParams().get(1);
+        if (scaleParam - 1 <= EPS) {
+            transformedModel.setScaleYParams(scaleParam * SCALE);
+        } else {
+            transformedModel.setScaleYParams(SCALE);
+        }
     }
 
     @FXML
-    public void scaleObjectByY() {
-        transformedModel.scaleYParams(SCALE);
+    public void reduceScaleByY() {
+        float scaleParam = transformedModel.getScaleParams().get(1);
+        if (scaleParam - 1 <= EPS) {
+            transformedModel.setScaleYParams(-scaleParam * SCALE);
+        } else {
+            transformedModel.setScaleYParams(-SCALE);
+        }
     }
 
     @FXML
-    public void scaleObjectByY1() {
-        transformedModel.scaleYParams(-SCALE);
+    public void scaleByZ() {
+        float scaleParam = transformedModel.getScaleParams().get(2);
+        if (scaleParam - 1 <= EPS) {
+            transformedModel.setScaleZParams(scaleParam * SCALE);
+        } else {
+            transformedModel.setScaleZParams(SCALE);
+        }
     }
 
     @FXML
-    public void scaleObjectByZ() {
-        transformedModel.scaleZParams(SCALE);
-    }
-
-    @FXML
-    public void scaleObjectByZ1() {
-        transformedModel.scaleZParams(-SCALE);
+    public void reduceScaleByZ() {
+        float scaleParam = transformedModel.getScaleParams().get(2);
+        if (scaleParam - 1 <= EPS) {
+            transformedModel.setScaleZParams(-scaleParam * SCALE);
+        } else {
+            transformedModel.setScaleZParams(-SCALE);
+        }
     }
 
     @FXML

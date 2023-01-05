@@ -25,12 +25,12 @@
             <MenuItem mnemonicParsing="false" onAction="#handleCameraDown" text="Down"/>
         </Menu>
         <Menu mnemonicParsing="false" text="Conveyor Options">
-            <MenuItem mnemonicParsing="false" onAction="#scaleObjectByX" text="#Scale By X"/>
-            <MenuItem mnemonicParsing="false" onAction="#scaleObjectByX1" text="Scale By 1/X"/>
-            <MenuItem mnemonicParsing="false" onAction="#scaleObjectByY" text="Scale By Y"/>
-            <MenuItem mnemonicParsing="false" onAction="#scaleObjectByY1" text="Scale By 1/Y"/>
-            <MenuItem mnemonicParsing="false" onAction="#scaleObjectByZ" text="Scale By Z"/>
-            <MenuItem mnemonicParsing="false" onAction="#scaleObjectByZ1" text="Scale By 1/Z"/>
+            <MenuItem mnemonicParsing="false" onAction="#scaleByX" text="Scale By X"/>
+            <MenuItem mnemonicParsing="false" onAction="#reduceScaleByX" text="Scale By 1/X"/>
+            <MenuItem mnemonicParsing="false" onAction="#scaleByY" text="Scale By Y"/>
+            <MenuItem mnemonicParsing="false" onAction="#reduceScaleByY" text="Scale By 1/Y"/>
+            <MenuItem mnemonicParsing="false" onAction="#scaleByZ" text="Scale By Z"/>
+            <MenuItem mnemonicParsing="false" onAction="#reduceScaleByZ" text="Scale By 1/Z"/>
             <MenuItem mnemonicParsing="false" onAction="#rotateAroundX" text="Rotate Around X"/>
             <MenuItem mnemonicParsing="false" onAction="#rotateAroundX1" text="Reverse Rotate Around X"/>
             <MenuItem mnemonicParsing="false" onAction="#rotateAroundY" text="Rotate Around Y"/>

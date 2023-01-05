@@ -8,13 +8,9 @@ import com.cgvsu.render_engine.MyGraphicConveyor;
 import java.util.ArrayList;
 
 public class TransformedModel {
-    final private float TRANSLATION_PARAMS = 5.5F;
-    final private float SCALE_PARAMS = 5.5F;
-    final private float ROTATE_PARAMS = 5.5F;
-
     public Model actualModel;
 
-    private Matrix4f transformedMatrix;
+    public ArrayList<Vector3f> transformedVertices = new ArrayList<>();
 
     private float scaleXParams = 1;
     private float scaleYParams = 1;
@@ -29,10 +25,10 @@ public class TransformedModel {
     private float translateZParams = 0;
 
     public TransformedModel(
-            Model actualMatrix,
-            float scaleXParams, float scaleYParams, float scaleZParams,
-            float rotateXParams, float rotateYParams, float rotateZParams,
-            float translateXParams, float translateYParams, float translateZParams) {
+            final Model actualMatrix,
+            final float scaleXParams, final float scaleYParams, final float scaleZParams,
+            final float rotateXParams, final float rotateYParams, final float rotateZParams,
+            final float translateXParams, final float translateYParams, final float translateZParams) {
         this.actualModel = actualMatrix;
         this.scaleXParams = scaleXParams;
         this.scaleYParams = scaleYParams;
@@ -45,8 +41,24 @@ public class TransformedModel {
         this.translateZParams = translateZParams;
     }
 
-    public TransformedModel(Model actualMatrix) {
-        this.actualModel = actualMatrix;
+    public TransformedModel(final Model actualModel) {
+        this.actualModel = actualModel;
+    }
+
+    public void setActualModel(final Model actualModel) {
+        this.actualModel = actualModel;
+    }
+
+    public void setTransformedModel() {
+        this.transformedVertices = copy(actualModel);
+    }
+
+    public ArrayList<Vector3f> getTransformedVertices() {
+        return transformedVertices;
+    }
+
+    public ArrayList<Vector3f> copy(final Model actualModel) {
+        return new ArrayList<>(actualModel.getVertices());
     }
 
     public void setRotateParams(float rotateXParams, float rotateYParams, float rotateZParams) {
@@ -72,20 +84,20 @@ public class TransformedModel {
     }
 
     public void setScaleParams(float scaleXParams, float scaleYParams, float scaleZParams) {
-        this.scaleXParams = scaleXParams;
-        this.scaleYParams = scaleYParams;
-        this.scaleZParams = scaleZParams;
+        this.scaleXParams = this.scaleXParams + scaleXParams;
+        this.scaleYParams = this.scaleYParams + scaleYParams;
+        this.scaleZParams = this.scaleZParams + scaleZParams;
     }
 
-    public void scaleXParams(float scaleParam) {
+    public void setScaleXParams(float scaleParam) {
         this.scaleXParams = scaleParam + scaleXParams;
     }
 
-    public void scaleYParams(float scaleParam) {
+    public void setScaleYParams(float scaleParam) {
         this.scaleYParams = scaleParam + scaleYParams;
     }
 
-    public void scaleZParams(float scaleParam) {
+    public void setScaleZParams(float scaleParam) {
         this.scaleZParams = scaleParam + scaleZParams;
     }
 
@@ -115,46 +127,20 @@ public class TransformedModel {
         return new Vector3f(new float[]{translateXParams, translateYParams, translateZParams});
     }
 
-    public Model getModelMatrix() {
+    public Model getPrevModel() {
         return this.actualModel;
     }
 
-    /*
-    Matrix4f modelMatrix = new Matrix4f();
-        TransformedModel model = new TransformedModel(mesh);
-        try {
-            modelMatrix = model.rotateScaleTranslate();
-        } catch (Matrix.MatrixException e) {
-            throw new RuntimeException(e);
-        }
-        Matrix4f viewMatrix = camera.getViewMatrix();
-        Matrix4f projectionMatrix = camera.getProjectionMatrix();
-
-        // Надо поменять умножение
-        Matrix4f modelViewProjectionMatrix = new Matrix4f(modelMatrix.getVector());
-        modelViewProjectionMatrix.mul(viewMatrix);
-        modelViewProjectionMatrix.mul(projectionMatrix);
-     */
     public Matrix4f rotateScaleTranslate() {
         try {
-            this.transformedMatrix =
-                    MyGraphicConveyor.rotateScaleTranslate(getRotateParams(), getScaleParams(), getTranslateParams());
-            return transformedMatrix;
+            return MyGraphicConveyor.rotateScaleTranslate(getRotateParams(), getScaleParams(), getTranslateParams());
         } catch (Matrix.MatrixException e) {
             throw new RuntimeException(e);
         }
     }
 
     public Model getTransformedModel() {
-        int size = transformedMatrix.getSize();
-        Model transformedModel = new Model();
-        for (int index = 0; index < size - 1; index++) {
-            float[] vertex = new float[]{
-                    transformedMatrix.get(index),
-                    transformedMatrix.get(size + index),
-                    transformedMatrix.get(2 * size + index)};
-            transformedModel.vertices.add(new Vector3f(vertex));
-        }
-        return transformedModel;
+        return new Model(transformedVertices,
+                actualModel.getTextureVertices(), actualModel.getNormals(), actualModel.getPolygons());
     }
 }

@@ -16,7 +16,6 @@ public class MyGraphicConveyor {
             throws Matrix.MatrixException {
         Matrix4f matrix4f = (Matrix4f) new Matrix4f().createIdentityMatrix();
         setScaleMatrix(matrix4f, scaleVector);
-        //getRotateMatrix(matrix4f, rotateVector);
         matrix4f = (Matrix4f) Matrix4f.multiplicateMatrices(getRotateMatrix(rotateVector), matrix4f);
         addTranslate(matrix4f, translateVector);
         return matrix4f;
@@ -24,13 +23,13 @@ public class MyGraphicConveyor {
 
     public static Matrix getRotateMatrix(Vector3f rotateVector) throws Matrix.MatrixException {
         Matrix4f matrix4f = (Matrix4f) new Matrix4f().createIdentityMatrix();
-        if (rotateVector.get(0) > EPS) {
+        if (Math.abs(rotateVector.get(0)) > EPS) {
             matrix4f = (Matrix4f) Matrix4f.multiplicateMatrices(getXRotationMatrix(rotateVector.get(0)), matrix4f);
         }
-        if (rotateVector.get(1) > EPS) {
+        if (Math.abs(rotateVector.get(1)) > EPS) {
             matrix4f = (Matrix4f) Matrix4f.multiplicateMatrices(getYRotationMatrix(rotateVector.get(1)), matrix4f);
         }
-        if (rotateVector.get(2) > EPS) {
+        if (Math.abs(rotateVector.get(2)) > EPS) {
             matrix4f = (Matrix4f) Matrix4f.multiplicateMatrices(getZRotationMatrix(rotateVector.get(2)), matrix4f);
         }
         return matrix4f;
@@ -135,24 +134,10 @@ public class MyGraphicConveyor {
         return result;
     }
 
-    //метод не нужен, но нужно последнее действие
     public static Vector3f multiplyMatrix4ByVector3(final Matrix4f matrix, final Vector3f vertex)
             throws Vector.VectorException, Matrix.MatrixException {
         Vector4f vector4f = (Vector4f) matrix.multiplicateOnVector(
-                new Vector4f(new float[]{vertex.x, vertex.y, vertex.z, 1}));
-        /*
-        final float x = (vertex.x * matrix.get(0)) + (vertex.y * matrix.get(1)) + (vertex.z * matrix.get(2))
-                + matrix.get(3);
-        final float y = (vertex.x * matrix.get(4)) + (vertex.y * matrix.get(5)) + (vertex.z * matrix.get(6))
-                + matrix.get(7);
-        final float z = (vertex.x * matrix.get(8)) + (vertex.y * matrix.get(9)) + (vertex.z * matrix.get(10))
-                + matrix.get(11);
-        final float w = (vertex.get(0) * matrix.get(12)) + (vertex.get(1) * matrix.get(13)) +
-                (vertex.get(2) * matrix.get(14)) + matrix.get(15);
-        //return (Vector3f) vertex.divideVectorOnConstant(w);
-        return new Vector3f(new float[]{x / w, y / w, z / w});
-
-         */
+                new Vector4f(new float[]{vertex.get(0), vertex.get(1), vertex.get(2), 1}));
         float w = vector4f.get(3);
         return new Vector3f(new float[]{vector4f.get(0) / w, vector4f.get(1) / w, vector4f.get(2) / w});
     }
@@ -160,10 +145,6 @@ public class MyGraphicConveyor {
     public static Point2f vertexToPoint(final Vector3f vertex, final int width, final int height) {
         return new Point2f(vertex.get(0) * width + width / 2.0F, -vertex.get(1) * height + height / 2.0F);
     }
-
-
-
-
 
     /*
     public Vector getRotation(final Matrix3d matrix, final Vector3d vector) throws Matrix.MatrixException {
@@ -181,26 +162,6 @@ public class MyGraphicConveyor {
         Matrix matrix = Matrix.multiplicateMatrices(getXRotationMatrix(alfa), getYRotationMatrix(beta));
         return Matrix.multiplicateMatrices(matrix, getZRotationMatrix(gamma));
     }
-
-    public Matrix getSqueezingMatrix(final double coeffX, final double coeffY, final double coeffZ) {
-        Matrix3d matrix3x = new Matrix3d();
-        Vector3d vector3f = new Vector3d(new double[]{coeffX, coeffY, coeffZ});
-
-        for (int index = 0; index < matrix3x.getSize(); index++) {
-            matrix3x.getVector()[index * matrix3x.getSize() + index] = vector3f.getVector()[index];
-        }
-
-        return matrix3x;
-    }
-
-    public Vector getShearing(Vector3d vector3f, Vector4d vector4f) throws Matrix.MatrixException {
-        Matrix3d matrix3x = new Matrix3d();
-        matrix3x.createIdentityMatrix();
-
-        Matrix matrix = rotateScaleTranslate();
-        return matrix.multiplicateOnVector(vector4f);
-    }
-
      */
 }
 

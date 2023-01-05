@@ -222,8 +222,7 @@ public abstract class Matrix {
         return result;
     }
 
-    public static Matrix multiplicateMatrices(final Matrix matrix1, final Matrix matrix2)
-            throws MatrixException {
+    public static Matrix multiplicateMatrices(final Matrix matrix1, final Matrix matrix2) throws MatrixException {
         if (!matrix1.isEqualSize(matrix2)) {
             throw new MatrixException("Different sizes can't be multiplicated");
         }
